@@ -2,9 +2,14 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <title>Earnify Rewards</title>
+
+<!-- ✅ Monetag SDK -->
+<script src='//libtl.com/sdk.js'
+data-zone='10947945'
+data-sdk='show_10947945'></script>
 
 <style>
 body {
@@ -57,23 +62,64 @@ h1 {
 
     <div class="actions">
 
-      <button class="btn">🎬 Rewarded Interstitial</button>
+      <!-- 🎬 Rewarded Interstitial -->
+      <button class="btn" onclick="showInterstitial()">
+        🎬 Rewarded Interstitial
+      </button>
 
-      <button class="btn">🎁 Rewarded Popup</button>
+      <!-- 🎁 Rewarded Popup -->
+      <button class="btn" onclick="showPopup()">
+        🎁 Rewarded Popup
+      </button>
 
-      <button class="btn">📺 In-App Interstitial</button>
+      <!-- 📺 In-App Interstitial -->
+      <button class="btn" onclick="showInApp()">
+        📺 In-App Interstitial
+      </button>
 
-    </div>
-
-    <div style="margin-top:15px;">
-      <button class="btn">📊 My Stats</button>
-      <button class="btn">⚙️ Check SDK</button>
-      <button class="btn">🧹 Reset Stats</button>
     </div>
 
   </div>
 
 </div>
+
+<script>
+
+function showInterstitial() {
+  show_10947945().then(() => {
+    alert('✅ You watched the ad!');
+  }).catch(() => {
+    alert('❌ Ad failed');
+  });
+}
+
+function showPopup() {
+  show_10947945('pop').then(() => {
+    alert('✅ Popup ad completed!');
+  }).catch(() => {
+    alert('❌ Popup failed');
+  });
+}
+
+function showInApp() {
+  show_10947945({
+    type: 'inApp',
+    inAppSettings: {
+      frequency: 2,
+      capping: 0.1,
+      interval: 30,
+      timeout: 5,
+      everyPage: false
+    }
+  });
+}
+
+// ✅ Auto In-App Run (optional)
+window.onload = () => {
+  showInApp();
+};
+
+</script>
 
 </body>
 </html>
