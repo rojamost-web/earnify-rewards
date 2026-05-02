@@ -1,125 +1,193 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+import React, { useEffect, useMemo, useState } from "react";
 
-<title>Earnify Rewards</title>
+// ===== SDK LOAD =====
+function loadAdSDK() {
+  return new Promise((resolve) => {
+    if (window.show_10947945) return resolve(true);
 
-<!-- ✅ Monetag SDK -->
-<script src='//libtl.com/sdk.js'
-data-zone='10947945'
-data-sdk='show_10947945'></script>
+    const script = document.createElement("script");
+    script.src = "//libtl.com/sdk.js";
+    script.async = true;
+    script.setAttribute("data-zone", "10947945");
+    script.setAttribute("data-sdk", "show_10947945");
 
-<style>
-body {
-  margin: 0;
-  font-family: system-ui, Arial;
-  background: #0b1020;
-  color: #fff;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+
+    document.body.appendChild(script);
+  });
 }
 
-.app {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
+export default function MiniAdApp() {
+  const [sdkReady, setSdkReady] = useState(false);
+  const [loadingAd, setLoadingAd] = useState(false);
 
-.card {
-  background: rgba(255,255,255,0.08);
-  padding: 20px;
-  border-radius: 20px;
-}
+  const [stats, setStats] = useState({
+    interstitial: { shown: 0, failed: 0 },
+    popup: { shown: 0, failed: 0 },
+    inapp: { shown: 0, failed: 0 },
+  });
 
-h1 {
-  margin-bottom: 10px;
-}
+  // Load SDK
+  useEffect(() => {
+    loadAdSDK().then((ok) => setSdkReady(ok));
+  }, []);
 
-.actions {
-  display: grid;
-  gap: 10px;
-}
+  const update = (type, field) => {
+    setStats((prev) => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [field]: prev[type][field] + 1,
+      },
+    }));
+  };
 
-.btn {
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #7c3aed, #22d3ee);
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-</style>
+  // ===== AD FUNCTIONS =====
 
-</head>
+  // 1. Rewarded Interstitial
+  const showInterstitial = async () => {
+    if (!window.show_10947945) return update("interstitial", "failed");
 
-<body>
+    setLoadingAd(true);
+    try {
+      await window.show_10947945();
+      alert("🎉 Reward earned!");
+      update("interstitial", "shown");
+    } catch {
+      update("interstitial", "failed");
+    }
+    setLoadingAd(false);
+  };
 
-<div class="app">
+  // 2. Popup Ad
+  const showPopup = async () => {
+    if (!window.show_10947945) return update("popup", "failed");
 
-  <div class="card">
-    <h1>Earnify Rewards</h1>
+    setLoadingAd(true);
+    try {
+      await window.show_10947945("pop");
+      alert("📢 Popup ad completed");
+      update("popup", "shown");
+    } catch {
+      update("popup", "failed");
+    }
+    setLoadingAd(false);
+  };
 
-    <div class="actions">
+  // 3. In-App Interstitial
+  const showInApp = () => {
+    if (!window.show_10947945) return update("inapp", "failed");
 
-      <!-- 🎬 Rewarded Interstitial -->
-      <button class="btn" onclick="showInterstitial()">
-        🎬 Rewarded Interstitial
-      </button>
+    try {
+      window.show_10947945({
+        type: "inApp",
+        inAppSettings: {
+          frequency: 2,
+          capping: 0.1,
+          interval: 30,
+          timeout: 5,
+          everyPage: false,
+        },
+      });
 
-      <!-- 🎁 Rewarded Popup -->
-      <button class="btn" onclick="showPopup()">
-        🎁 Rewarded Popup
-      </button>
+      update("inapp", "shown");
+    } catch {
+      update("inapp", "failed");
+    }
+  };
 
-      <!-- 📺 In-App Interstitial -->
-      <button class="btn" onclick="showInApp()">
-        📺 In-App Interstitial
-      </button>
+  // ===== TOTAL STATS =====
+  const totalShown = useMemo(
+    () => Object.values(stats).reduce((a, b) => a + b.shown, 0),
+    [stats]
+  );
+
+  const totalFailed = useMemo(
+    () => Object.values(stats).reduce((a, b) => a + b.failed, 0),
+    [stats]
+  );
+
+  const successRate = useMemo(() => {
+    const total = totalShown + totalFailed;
+    return total === 0 ? 0 : Math.round((totalShown / total) * 100);
+  }, [totalShown, totalFailed]);
+
+  // ===== UI =====
+  return (
+    <div style={{
+      padding: 20,
+      fontFamily: "sans-serif",
+      background: "linear-gradient(135deg,#0f172a,#020617)",
+      minHeight: "100vh",
+      color: "white"
+    }}>
+
+      <h1 style={{fontSize: 28}}>🚀 Telegram Mini Ad Dashboard</h1>
+
+      {/* SDK STATUS */}
+      <div style={{marginTop: 10}}>
+        SDK Status:
+        <b style={{marginLeft: 8, color: sdkReady ? "#22c55e" : "#ef4444"}}>
+          {sdkReady ? "Loaded ✅" : "Not Loaded ❌"}
+        </b>
+      </div>
+
+      {/* BUTTONS */}
+      <div style={{marginTop: 30}}>
+        <h2>🎯 Ad Formats</h2>
+
+        <button style={btnStyle} onClick={showInterstitial} disabled={loadingAd}>
+          🎁 Rewarded Interstitial
+        </button>
+
+        <button style={btnStyle} onClick={showPopup} disabled={loadingAd}>
+          📢 Popup Ad
+        </button>
+
+        <button style={btnStyle} onClick={showInApp}>
+          ⚡ In-App Ads Start
+        </button>
+      </div>
+
+      {/* STATS */}
+      <div style={{marginTop: 40}}>
+        <h2>📊 Stats</h2>
+
+        <div style={cardStyle}>
+          <p>Shown: {totalShown}</p>
+          <p>Failed: {totalFailed}</p>
+          <p>Success Rate: {successRate}%</p>
+        </div>
+
+        <div style={{marginTop: 20}}>
+          <h3>Details</h3>
+          <pre style={{background:"#020617", padding:10, borderRadius:10}}>
+            {JSON.stringify(stats, null, 2)}
+          </pre>
+        </div>
+      </div>
 
     </div>
-
-  </div>
-
-</div>
-
-<script>
-
-function showInterstitial() {
-  show_10947945().then(() => {
-    alert('✅ You watched the ad!');
-  }).catch(() => {
-    alert('❌ Ad failed');
-  });
+  );
 }
 
-function showPopup() {
-  show_10947945('pop').then(() => {
-    alert('✅ Popup ad completed!');
-  }).catch(() => {
-    alert('❌ Popup failed');
-  });
-}
-
-function showInApp() {
-  show_10947945({
-    type: 'inApp',
-    inAppSettings: {
-      frequency: 2,
-      capping: 0.1,
-      interval: 30,
-      timeout: 5,
-      everyPage: false
-    }
-  });
-}
-
-// ✅ Auto In-App Run (optional)
-window.onload = () => {
-  showInApp();
+// ===== STYLES =====
+const btnStyle = {
+  display: "block",
+  marginTop: 10,
+  padding: "12px 16px",
+  borderRadius: 10,
+  border: "none",
+  cursor: "pointer",
+  fontWeight: "bold",
+  background: "linear-gradient(45deg,#06b6d4,#8b5cf6)",
+  color: "white"
 };
 
-</script>
-
-</body>
-</html>
+const cardStyle = {
+  background: "#020617",
+  padding: 15,
+  borderRadius: 12,
+  border: "1px solid #1e293b"
+};
